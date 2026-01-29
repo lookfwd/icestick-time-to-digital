@@ -1,0 +1,22 @@
+# iCEstick Pin Constraints for TDC Project
+# Board: ICE40HX1K-STICK-EVN
+
+# 12 MHz oscillator
+set_io clk_12m 21
+
+# LEDs (accent active high)
+set_io led[0] 99
+set_io led[1] 98
+set_io led[2] 97
+set_io led[3] 96
+
+# UART TX to FTDI chip
+# Pin 8 is directly connected to FTDI RXD
+set_io uart_tx 8
+
+# PMOD connector J2 (directly on iCEstick)
+# Used for START and STOP inputs
+# PMOD pin 1 -> FPGA pin 78
+# PMOD pin 2 -> FPGA pin 79
+set_io start_in 78
+set_io stop_in 79

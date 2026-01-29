@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDC Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #connectBtn {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+        #connectBtn:hover:not(:disabled) {
+            background: #00a8cc;
+        }
+        #resetBtn {
+            background: #ff6b6b;
+            color: white;
+        }
+        #resetBtn:hover:not(:disabled) {
+            background: #ee5a5a;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00d4ff;
+            font-family: 'Courier New', monospace;
+        }
+        .stat-card .unit {
+            font-size: 14px;
+            color: #666;
+        }
+        .rolling-display {
+            background: #0f0f23;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .rolling-display .entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+        }
+        .rolling-display .entry:last-child {
+            border-bottom: none;
+        }
+        .rolling-display .hex {
+            color: #888;
+        }
+        .rolling-display .time {
+            color: #00d4ff;
+        }
+        .chart-container {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-title {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #888;
+        }
+        #status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        #status.disconnected {
+            background: #3d2222;
+            color: #ff6b6b;
+        }
+        #status.connected {
+            background: #223d22;
+            color: #6bff6b;
+        }
+        .settings {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .settings label {
+            color: #888;
+        }
+        .settings input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f0f23;
+            color: #eee;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>iCEstick TDC Viewer</h1>
+
+        <div id="status" class="disconnected">Disconnected - Click "Connect" to start</div>
+
+        <div class="controls">
+            <button id="connectBtn">Connect Serial</button>
+            <button id="resetBtn" disabled>Reset Data</button>
+        </div>
+
+        <div class="settings">
+            <label>Histogram bins: <input type="number" id="binCount" value="50" min="10" max="200"></label>
+            <label>Coarse tick (ns): <input type="number" id="coarseTick" value="5" step="0.1"></label>
+            <label>Fine tick (ps): <input type="number" id="fineTick" value="150" step="10"></label>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Latest</div>
+                <div class="value" id="latestValue">--</div>
+                <div class="unit" id="latestUnit"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Count</div>
+                <div class="value" id="countValue">0</div>
+                <div class="unit">measurements</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Mean</div>
+                <div class="value" id="meanValue">--</div>
+                <div class="unit" id="meanUnit"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Std Dev</div>
+                <div class="value" id="stdValue">--</div>
+                <div class="unit" id="stdUnit"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Min</div>
+                <div class="value" id="minValue">--</div>
+                <div class="unit" id="minUnit"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Max</div>
+                <div class="value" id="maxValue">--</div>
+                <div class="unit" id="maxUnit"></div>
+            </div>
+        </div>
+
+        <div class="rolling-display" id="rollingDisplay">
+            <div style="color: #666; text-align: center;">Waiting for data...</div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Time Distribution Histogram</div>
+            <canvas id="histogram"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let port = null;
+        let reader = null;
+        let measurements = [];
+        let buffer = '';
+
+        // DOM elements
+        const connectBtn = document.getElementById('connectBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const status = document.getElementById('status');
+        const rollingDisplay = document.getElementById('rollingDisplay');
+
+        // Chart setup
+        const ctx = document.getElementById('histogram').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Count',
+                    data: [],
+                    backgroundColor: 'rgba(0, 212, 255, 0.6)',
+                    borderColor: 'rgba(0, 212, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.5,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Time', color: '#888' },
+                        ticks: { color: '#888', maxTicksLimit: 10 },
+                        grid: { color: '#333' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Count', color: '#888' },
+                        ticks: { color: '#888' },
+                        grid: { color: '#333' },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Convert raw value to time in nanoseconds
+        function rawToNs(raw) {
+            const coarseTick = parseFloat(document.getElementById('coarseTick').value);
+            const fineTick = parseFloat(document.getElementById('fineTick').value);
+            const coarse = raw >> 5;
+            const fine = raw & 0x1F;
+            return (coarse * coarseTick) + (fine * fineTick / 1000);
+        }
+
+        // Format time with appropriate unit
+        function formatTime(ns) {
+            if (ns >= 1e9) return { value: (ns / 1e9).toFixed(3), unit: 's' };
+            if (ns >= 1e6) return { value: (ns / 1e6).toFixed(3), unit: 'ms' };
+            if (ns >= 1e3) return { value: (ns / 1e3).toFixed(3), unit: 'µs' };
+            return { value: ns.toFixed(2), unit: 'ns' };
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('countValue').textContent = measurements.length;
+
+            if (measurements.length === 0) {
+                ['latest', 'mean', 'std', 'min', 'max'].forEach(id => {
+                    document.getElementById(id + 'Value').textContent = '--';
+                    document.getElementById(id + 'Unit').textContent = '';
+                });
+                return;
+            }
+
+            const times = measurements.map(m => m.ns);
+            const latest = times[times.length - 1];
+            const mean = times.reduce((a, b) => a + b, 0) / times.length;
+            const min = Math.min(...times);
+            const max = Math.max(...times);
+            const variance = times.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / times.length;
+            const std = Math.sqrt(variance);
+
+            const stats = [
+                { id: 'latest', val: latest },
+                { id: 'mean', val: mean },
+                { id: 'std', val: std },
+                { id: 'min', val: min },
+                { id: 'max', val: max }
+            ];
+
+            stats.forEach(s => {
+                const fmt = formatTime(s.val);
+                document.getElementById(s.id + 'Value').textContent = fmt.value;
+                document.getElementById(s.id + 'Unit').textContent = fmt.unit;
+            });
+        }
+
+        // Update histogram
+        function updateHistogram() {
+            if (measurements.length < 2) {
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                chart.update();
+                return;
+            }
+
+            const times = measurements.map(m => m.ns);
+            const min = Math.min(...times);
+            const max = Math.max(...times);
+            const binCount = parseInt(document.getElementById('binCount').value);
+            const binWidth = (max - min) / binCount || 1;
+
+            const bins = new Array(binCount).fill(0);
+            times.forEach(t => {
+                const idx = Math.min(Math.floor((t - min) / binWidth), binCount - 1);
+                bins[idx]++;
+            });
+
+            // Create labels based on the range
+            const fmt = formatTime((min + max) / 2);
+            const scale = fmt.unit === 's' ? 1e9 : fmt.unit === 'ms' ? 1e6 : fmt.unit === 'µs' ? 1e3 : 1;
+
+            chart.data.labels = bins.map((_, i) => {
+                const val = (min + (i + 0.5) * binWidth) / scale;
+                return val.toFixed(2);
+            });
+            chart.data.datasets[0].data = bins;
+            chart.options.scales.x.title.text = `Time (${fmt.unit})`;
+            chart.update();
+        }
+
+        // Add new measurement
+        function addMeasurement(hex, raw) {
+            const ns = rawToNs(raw);
+            measurements.push({ hex, raw, ns });
+
+            // Update rolling display (keep last 20)
+            const displayData = measurements.slice(-20).reverse();
+            rollingDisplay.innerHTML = displayData.map(m => {
+                const fmt = formatTime(m.ns);
+                return `<div class="entry">
+                    <span class="hex">${m.hex}</span>
+                    <span class="time">${fmt.value} ${fmt.unit}</span>
+                </div>`;
+            }).join('');
+
+            updateStats();
+            updateHistogram();
+        }
+
+        // Process incoming data
+        function processData(data) {
+            buffer += data;
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                const hex = line.trim().toUpperCase();
+                if (/^[0-9A-F]{10}$/.test(hex)) {
+                    const raw = parseInt(hex, 16);
+                    addMeasurement(hex, raw);
+                }
+            }
+        }
+
+        // Connect to serial port
+        async function connect() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+
+                status.textContent = 'Connected';
+                status.className = 'connected';
+                connectBtn.textContent = 'Disconnect';
+                resetBtn.disabled = false;
+
+                // Start reading
+                const decoder = new TextDecoderStream();
+                port.readable.pipeTo(decoder.writable);
+                reader = decoder.readable.getReader();
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) processData(value);
+                }
+            } catch (err) {
+                if (err.name !== 'NotFoundError') {
+                    console.error('Serial error:', err);
+                    status.textContent = 'Error: ' + err.message;
+                }
+            }
+        }
+
+        // Disconnect
+        async function disconnect() {
+            if (reader) {
+                await reader.cancel();
+                reader = null;
+            }
+            if (port) {
+                await port.close();
+                port = null;
+            }
+            status.textContent = 'Disconnected';
+            status.className = 'disconnected';
+            connectBtn.textContent = 'Connect Serial';
+        }
+
+        // Reset data
+        function resetData() {
+            measurements = [];
+            buffer = '';
+            rollingDisplay.innerHTML = '<div style="color: #666; text-align: center;">Waiting for data...</div>';
+            updateStats();
+            updateHistogram();
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', async () => {
+            if (port) {
+                await disconnect();
+            } else {
+                await connect();
+            }
+        });
+
+        resetBtn.addEventListener('click', resetData);
+
+        // Check for Web Serial API support
+        if (!('serial' in navigator)) {
+            status.textContent = 'Web Serial API not supported. Use Chrome or Edge.';
+            connectBtn.disabled = true;
+        }
+    </script>
+</body>
+</html>
