@@ -22,6 +22,13 @@ module top (
     // UART signals
     wire uart_busy;
 
+    // Measurement buffer (decouples TDC from UART timing)
+    reg [39:0] meas_buffer;
+    reg meas_pending;
+    reg uart_busy_d;  // For edge detection
+    wire uart_done = uart_busy_d & ~uart_busy;  // Falling edge of busy
+    reg uart_start;  // Trigger for UART
+
     // Input synchronization
     reg [2:0] start_sync;
     reg [2:0] stop_sync;
@@ -57,8 +64,42 @@ module top (
         end
     end
 
-    // Auto-arm: TDC is always armed when idle and UART is not busy
-    wire auto_arm = (tdc_state == 2'd0) && !uart_busy;
+    // Auto-arm: TDC is always armed when idle (decoupled from UART)
+    wire auto_arm = (tdc_state == 2'd0);
+
+    // Measurement buffering logic
+    // When a new measurement arrives, buffer it. When UART is free and we have
+    // a pending measurement, send it. This allows TDC to run continuously
+    // without waiting for UART transmission to complete.
+    always @(posedge clk_200m or negedge rst_n) begin
+        if (!rst_n) begin
+            meas_buffer  <= 40'd0;
+            meas_pending <= 1'b0;
+            uart_busy_d  <= 1'b0;
+            uart_start   <= 1'b0;
+        end else begin
+            uart_busy_d <= uart_busy;
+            uart_start  <= 1'b0;  // Default: no start pulse
+
+            // Buffer new measurement when it arrives
+            if (meas_valid) begin
+                meas_buffer  <= measurement;
+                meas_pending <= 1'b1;
+            end
+
+            // When UART finishes and we have a pending measurement, send it
+            if (uart_done && meas_pending) begin
+                uart_start   <= 1'b1;
+                meas_pending <= 1'b0;
+            end
+
+            // If UART is idle and we have a pending measurement, send it
+            if (!uart_busy && !uart_busy_d && meas_pending) begin
+                uart_start   <= 1'b1;
+                meas_pending <= 1'b0;
+            end
+        end
+    end
 
     // PLL: 12 MHz -> 200 MHz
     pll pll_inst (
@@ -80,14 +121,15 @@ module top (
     );
 
     // UART Transmitter
+    // Uses buffered measurement and start signal (decoupled from TDC timing)
     uart_tx #(
         .CLK_FREQ(200_000_000),
         .BAUD(115200)
     ) uart_inst (
         .clk(clk_200m),
         .rst_n(rst_n),
-        .data(measurement),
-        .data_valid(meas_valid),
+        .data(meas_buffer),
+        .data_valid(uart_start),
         .tx(uart_tx),
         .busy(uart_busy)
     );
