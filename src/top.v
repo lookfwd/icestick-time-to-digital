@@ -32,8 +32,6 @@ module top (
     // Measurement buffer (decouples TDC from UART timing)
     reg [39:0] meas_buffer;
     reg meas_pending;
-    reg uart_busy_d;  // For edge detection
-    wire uart_done = uart_busy_d & ~uart_busy;  // Falling edge of busy
     reg uart_start;  // Trigger for UART
 
     // Input synchronization
@@ -78,11 +76,9 @@ module top (
         if (!rst_n) begin
             meas_buffer  <= 40'd0;
             meas_pending <= 1'b0;
-            uart_busy_d  <= 1'b0;
             uart_start   <= 1'b0;
             rate_counter <= 24'd0;
         end else begin
-            uart_busy_d <= uart_busy;
             uart_start  <= 1'b0;  // Default: no start pulse
 
             // Increment rate counter (saturate at max to avoid overflow)
@@ -95,15 +91,8 @@ module top (
                 meas_pending <= 1'b1;
             end
 
-            // When UART finishes and we have a pending measurement and rate limit allows, send it
-            if (uart_done && meas_pending && can_transmit) begin
-                uart_start   <= 1'b1;
-                meas_pending <= 1'b0;
-                rate_counter <= 24'd0;  // Reset rate limiter
-            end
-
             // If UART is idle and we have a pending measurement and rate limit allows, send it
-            if (!uart_busy && !uart_busy_d && meas_pending && can_transmit) begin
+            if (!uart_busy && meas_pending && can_transmit) begin
                 uart_start   <= 1'b1;
                 meas_pending <= 1'b0;
                 rate_counter <= 24'd0;  // Reset rate limiter
