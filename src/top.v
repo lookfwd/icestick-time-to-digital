@@ -1,10 +1,10 @@
 // Top-level module for iCEstick Time-to-Digital Converter
 // Integrates PLL, TDC core, and UART transmitter
+// Measures time between two rising edges of the input signal
 
 module top (
     input  wire clk_12m,      // 12 MHz oscillator
-    input  wire start_in,     // START signal (PMOD1 pin 1)
-    input  wire stop_in,      // STOP signal (PMOD1 pin 2)
+    input  wire signal_in,    // Input signal (PMOD1 pin 1) - measures time between rising edges
     output wire uart_tx,      // UART TX to FTDI
     output wire [3:0] led     // Status LEDs
 );
@@ -30,10 +30,8 @@ module top (
     reg uart_start;  // Trigger for UART
 
     // Input synchronization
-    reg [2:0] start_sync;
-    reg [2:0] stop_sync;
-    wire start_synced = start_sync[2];
-    wire stop_synced  = stop_sync[2];
+    reg [2:0] signal_sync;
+    wire signal_synced = signal_sync[2];
 
     // Reset generation (hold reset until PLL locks)
     reg [7:0] reset_counter = 0;
@@ -53,14 +51,12 @@ module top (
 
     assign rst_n = rst_n_reg;
 
-    // Synchronize external inputs to 200 MHz domain
+    // Synchronize external input to 200 MHz domain
     always @(posedge clk_200m or negedge rst_n) begin
         if (!rst_n) begin
-            start_sync <= 3'b000;
-            stop_sync  <= 3'b000;
+            signal_sync <= 3'b000;
         end else begin
-            start_sync <= {start_sync[1:0], start_in};
-            stop_sync  <= {stop_sync[1:0], stop_in};
+            signal_sync <= {signal_sync[1:0], signal_in};
         end
     end
 
@@ -112,8 +108,7 @@ module top (
     tdc_core tdc_inst (
         .clk(clk_200m),
         .rst_n(rst_n),
-        .start(start_synced),
-        .stop(stop_synced),
+        .signal(signal_synced),
         .arm(auto_arm),
         .measurement(measurement),
         .meas_valid(meas_valid),
@@ -136,8 +131,8 @@ module top (
 
     // LED status display
     // LED[0]: PLL locked
-    // LED[1]: TDC armed (waiting for START)
-    // LED[2]: TDC measuring (between START and STOP)
+    // LED[1]: TDC armed (waiting for first rising edge)
+    // LED[2]: TDC measuring (between first and second rising edge)
     // LED[3]: UART transmitting
     assign led[0] = pll_locked;
     assign led[1] = (tdc_state == 2'd1);  // ARMED

@@ -1,5 +1,5 @@
 // TDC Core Module
-// Measures time between START rising edge and STOP rising edge
+// Measures time between two rising edges of the input signal
 // Uses coarse counter (200 MHz) + fine delay line interpolation
 //
 // State machine: IDLE -> ARMED -> MEASURING -> DONE
@@ -7,8 +7,7 @@
 module tdc_core (
     input  wire        clk,           // 200 MHz clock
     input  wire        rst_n,         // Active low reset
-    input  wire        start,         // START signal (rising edge triggers)
-    input  wire        stop,          // STOP signal (rising edge triggers)
+    input  wire        signal,        // Input signal (measures time between rising edges)
     input  wire        arm,           // Arm the TDC for measurement
     output reg  [39:0] measurement,   // Combined measurement result (40-bit)
     output reg         meas_valid,    // Measurement is valid
@@ -27,9 +26,8 @@ module tdc_core (
     reg [28:0] coarse_count;
 
     // Edge detection
-    reg start_d, stop_d;
-    wire start_rising = start & ~start_d;
-    wire stop_rising  = stop & ~stop_d;
+    reg signal_d;
+    wire signal_rising = signal & ~signal_d;
 
     // Delay line interface
     wire [4:0] fine_count;
@@ -38,7 +36,7 @@ module tdc_core (
 
     // Instantiate delay line
     delay_line delay_line_inst (
-        .signal_in(stop),
+        .signal_in(signal),
         .clk(clk),
         .sample(sample_delay_line),
         .fine_count(fine_count),
@@ -48,11 +46,9 @@ module tdc_core (
     // Edge detection registers
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            start_d <= 1'b0;
-            stop_d  <= 1'b0;
+            signal_d <= 1'b0;
         end else begin
-            start_d <= start;
-            stop_d  <= stop;
+            signal_d <= signal;
         end
     end
 
@@ -78,7 +74,7 @@ module tdc_core (
 
                 ARMED: begin
                     coarse_count <= 0;
-                    if (start_rising) begin
+                    if (signal_rising) begin
                         state <= MEASURING;
                     end
                 end
@@ -89,8 +85,8 @@ module tdc_core (
                         coarse_count <= coarse_count + 1;
                     end
 
-                    // Check for STOP
-                    if (stop_rising) begin
+                    // Check for second rising edge
+                    if (signal_rising) begin
                         sample_delay_line <= 1'b1;
                         state <= DONE;
                     end
