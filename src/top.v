@@ -22,6 +22,13 @@ module top (
     // UART signals
     wire uart_busy;
 
+    // Rate limiter parameters
+    // 200 MHz clock, 20 transmissions per second = 10,000,000 clock cycles between transmissions
+    localparam CLKS_PER_TX = 200_000_000 / 20;  // 10,000,000 cycles = 50ms
+    reg [23:0] rate_counter;  // 24 bits can hold up to 16,777,215
+    wire can_transmit;
+    assign can_transmit = (rate_counter >= CLKS_PER_TX);
+
     // Measurement buffer (decouples TDC from UART timing)
     reg [39:0] meas_buffer;
     reg meas_pending;
@@ -63,19 +70,24 @@ module top (
     // Auto-arm: TDC is always armed when idle (decoupled from UART)
     wire auto_arm = (tdc_state == 2'd0);
 
-    // Measurement buffering logic
-    // When a new measurement arrives, buffer it. When UART is free and we have
-    // a pending measurement, send it. This allows TDC to run continuously
-    // without waiting for UART transmission to complete.
+    // Measurement buffering logic with rate limiting
+    // When a new measurement arrives, buffer it. When UART is free, rate limit
+    // allows, and we have a pending measurement, send it. This limits UART
+    // transmission to 20 times per second while TDC runs continuously.
     always @(posedge clk_200m or negedge rst_n) begin
         if (!rst_n) begin
             meas_buffer  <= 40'd0;
             meas_pending <= 1'b0;
             uart_busy_d  <= 1'b0;
             uart_start   <= 1'b0;
+            rate_counter <= 24'd0;
         end else begin
             uart_busy_d <= uart_busy;
             uart_start  <= 1'b0;  // Default: no start pulse
+
+            // Increment rate counter (saturate at max to avoid overflow)
+            if (rate_counter < CLKS_PER_TX)
+                rate_counter <= rate_counter + 1'b1;
 
             // Buffer new measurement when it arrives
             if (meas_valid) begin
@@ -83,16 +95,18 @@ module top (
                 meas_pending <= 1'b1;
             end
 
-            // When UART finishes and we have a pending measurement, send it
-            if (uart_done && meas_pending) begin
+            // When UART finishes and we have a pending measurement and rate limit allows, send it
+            if (uart_done && meas_pending && can_transmit) begin
                 uart_start   <= 1'b1;
                 meas_pending <= 1'b0;
+                rate_counter <= 24'd0;  // Reset rate limiter
             end
 
-            // If UART is idle and we have a pending measurement, send it
-            if (!uart_busy && !uart_busy_d && meas_pending) begin
+            // If UART is idle and we have a pending measurement and rate limit allows, send it
+            if (!uart_busy && !uart_busy_d && meas_pending && can_transmit) begin
                 uart_start   <= 1'b1;
                 meas_pending <= 1'b0;
+                rate_counter <= 24'd0;  // Reset rate limiter
             end
         end
     end
