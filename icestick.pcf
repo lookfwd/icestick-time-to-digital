@@ -15,8 +15,6 @@ set_io led[3] 96
 set_io uart_tx 8
 
 # PMOD connector J2 (directly on iCEstick)
-# Used for START and STOP inputs
+# START input - measures pulse width (rising to falling edge)
 # PMOD pin 1 -> FPGA pin 78
-# PMOD pin 2 -> FPGA pin 79
 set_io start_in 78
-set_io stop_in 79

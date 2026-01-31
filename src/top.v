@@ -3,8 +3,7 @@
 
 module top (
     input  wire clk_12m,      // 12 MHz oscillator
-    input  wire start_in,     // START signal (PMOD1 pin 1)
-    input  wire stop_in,      // STOP signal (PMOD1 pin 2)
+    input  wire start_in,     // START signal (PMOD1 pin 1) - measures pulse width
     output wire uart_tx,      // UART TX to FTDI
     output wire [3:0] led     // Status LEDs
 );
@@ -31,9 +30,7 @@ module top (
 
     // Input synchronization
     reg [2:0] start_sync;
-    reg [2:0] stop_sync;
     wire start_synced = start_sync[2];
-    wire stop_synced  = stop_sync[2];
 
     // Reset generation (hold reset until PLL locks)
     reg [7:0] reset_counter = 0;
@@ -53,14 +50,12 @@ module top (
 
     assign rst_n = rst_n_reg;
 
-    // Synchronize external inputs to 200 MHz domain
+    // Synchronize external input to 200 MHz domain
     always @(posedge clk_200m or negedge rst_n) begin
         if (!rst_n) begin
             start_sync <= 3'b000;
-            stop_sync  <= 3'b000;
         end else begin
             start_sync <= {start_sync[1:0], start_in};
-            stop_sync  <= {stop_sync[1:0], stop_in};
         end
     end
 
@@ -108,12 +103,11 @@ module top (
         .locked(pll_locked)
     );
 
-    // TDC Core
+    // TDC Core (measures pulse width of start signal)
     tdc_core tdc_inst (
         .clk(clk_200m),
         .rst_n(rst_n),
         .start(start_synced),
-        .stop(stop_synced),
         .arm(auto_arm),
         .measurement(measurement),
         .meas_valid(meas_valid),

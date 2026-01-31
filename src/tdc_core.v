@@ -1,5 +1,5 @@
 // TDC Core Module
-// Measures time between START rising edge and STOP rising edge
+// Measures pulse width: START rising edge to START falling edge
 // Uses coarse counter (200 MHz) + fine delay line interpolation
 //
 // State machine: IDLE -> ARMED -> MEASURING -> DONE
@@ -7,8 +7,7 @@
 module tdc_core (
     input  wire        clk,           // 200 MHz clock
     input  wire        rst_n,         // Active low reset
-    input  wire        start,         // START signal (rising edge triggers)
-    input  wire        stop,          // STOP signal (rising edge triggers)
+    input  wire        start,         // START signal (rising edge starts, falling edge stops)
     input  wire        arm,           // Arm the TDC for measurement
     output reg  [39:0] measurement,   // Combined measurement result (40-bit)
     output reg         meas_valid,    // Measurement is valid
@@ -27,18 +26,18 @@ module tdc_core (
     reg [28:0] coarse_count;
 
     // Edge detection
-    reg start_d, stop_d;
-    wire start_rising = start & ~start_d;
-    wire stop_rising  = stop & ~stop_d;
+    reg start_d;
+    wire start_rising  = start & ~start_d;
+    wire start_falling = ~start & start_d;
 
     // Delay line interface
     wire [4:0] fine_count;
     wire fine_valid;
     reg  sample_delay_line;
 
-    // Instantiate delay line
+    // Instantiate delay line (samples inverted start for falling edge timing)
     delay_line delay_line_inst (
-        .signal_in(stop),
+        .signal_in(~start),
         .clk(clk),
         .sample(sample_delay_line),
         .fine_count(fine_count),
@@ -49,10 +48,8 @@ module tdc_core (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             start_d <= 1'b0;
-            stop_d  <= 1'b0;
         end else begin
             start_d <= start;
-            stop_d  <= stop;
         end
     end
 
@@ -89,8 +86,8 @@ module tdc_core (
                         coarse_count <= coarse_count + 1;
                     end
 
-                    // Check for STOP
-                    if (stop_rising) begin
+                    // Check for falling edge of start (end of pulse)
+                    if (start_falling) begin
                         sample_delay_line <= 1'b1;
                         state <= DONE;
                     end
