@@ -3,7 +3,7 @@
 // Transmits 40-bit value as 10 hex characters + newline
 
 module uart_tx #(
-    parameter CLK_FREQ = 200_000_000,  // 200 MHz clock
+    parameter CLK_FREQ = 100_000_000,  // 100 MHz clock
     parameter BAUD     = 115200
 ) (
     input  wire        clk,
@@ -15,7 +15,7 @@ module uart_tx #(
 );
 
     // Baud rate divider: CLK_FREQ / BAUD
-    localparam CLKS_PER_BIT = CLK_FREQ / BAUD;  // ~1736 for 200MHz/115200
+    localparam CLKS_PER_BIT = CLK_FREQ / BAUD;  // ~868 for 100MHz/115200
 
     // States
     localparam IDLE      = 3'd0;

@@ -6,14 +6,14 @@ module top (
 );
 
     // Internal signals
-    wire clk_200m;
+    wire clk_100m;
     wire pll_locked;
     wire rst_n;
 
-    // PLL: 12 MHz -> 200 MHz
+    // PLL: 12 MHz -> 100 MHz
     pll pll_inst (
         .clk_12m(clk_12m),
-        .clk_200m(clk_200m),
+        .clk_100m(clk_100m),
         .locked(pll_locked)
     );
 
@@ -25,7 +25,7 @@ module top (
     reg [7:0] reset_counter = 0;
     reg rst_n_reg = 0;
 
-    always @(posedge clk_200m or negedge pll_locked) begin
+    always @(posedge clk_100m or negedge pll_locked) begin
         if (!pll_locked) begin
             reset_counter <= 0;
             rst_n_reg <= 0;
@@ -39,8 +39,8 @@ module top (
 
     assign rst_n = rst_n_reg;
 
-    // Synchronize external input to 200 MHz domain
-    always @(posedge clk_200m or negedge rst_n) begin
+    // Synchronize external input to 100 MHz domain
+    always @(posedge clk_100m or negedge rst_n) begin
         if (!rst_n) begin
             signal_sync <= 3'b000;
         end else begin
@@ -49,10 +49,10 @@ module top (
     end
 
     tdc #(
-        .CLK_FREQ(200_000_000),
+        .CLK_FREQ(100_000_000),
         .BAUD(115200)
     ) tdc_inst (
-        .clk_200m(clk_200m),
+        .clk_100m(clk_100m),
         .rst_n(rst_n),
         .signal_in(signal_sync),
         .uart_tx(uart_tx),

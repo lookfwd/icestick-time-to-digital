@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Time-to-Digital Converter (TDC) for the iCEstick (ICE40HX1K-STICK-EVN). Measures time intervals between START and STOP pulses with ~1ns resolution over a 2.68 second range, using a 200 MHz coarse counter and 32-tap carry chain delay line.
+Time-to-Digital Converter (TDC) for the iCEstick (ICE40HX1K-STICK-EVN). Measures time intervals between START and STOP pulses with ~2ns resolution over a 5.37 second range, using a 100 MHz coarse counter and 32-tap carry chain delay line.
 
 ## Build Commands
 
@@ -22,14 +22,14 @@ Requires: yosys, nextpnr-ice40, icestorm (icepack, iceprog, icetime)
 ## Architecture
 
 ```
-12MHz → [PLL] → 200MHz → [TDC_CORE] → [UART_TX] → PC
+12MHz → [PLL] → 100MHz → [TDC_CORE] → [UART_TX] → PC
                               ↓
                         [DELAY_LINE]
 ```
 
 - **top.v**: Top-level integration, input synchronization, auto-arm logic
-- **pll.v**: SB_PLL40_CORE generating 200 MHz from 12 MHz
-- **tdc_core.v**: State machine (IDLE→ARMED→MEASURING→DONE), 29-bit coarse counter (2.68s range)
+- **pll.v**: SB_PLL40_CORE generating 100 MHz from 12 MHz
+- **tdc_core.v**: State machine (IDLE→ARMED→MEASURING→DONE), 29-bit coarse counter (5.37s range)
 - **delay_line.v**: 32-stage SB_CARRY chain for sub-cycle interpolation (~150ps/tap)
 - **uart_tx.v**: 115200 baud transmitter, outputs 40-bit measurement as hex ASCII
 
@@ -47,7 +47,7 @@ Requires: yosys, nextpnr-ice40, icestorm (icepack, iceprog, icetime)
 
 UART sends 10 hex digits + newline for each measurement (40-bit value):
 - Bits [39:34]: Unused (zero)
-- Bits [33:5]: Coarse count (5ns per tick @ 200 MHz, 29 bits = 2.68s max)
+- Bits [33:5]: Coarse count (10ns per tick @ 100 MHz, 29 bits = 5.37s max)
 - Bits [4:0]: Fine count (~150ps per tick from delay line)
 
 Example: `000000D4A0\n` = 0xD4A0 = 54432 ticks ≈ 272 µs

@@ -1,11 +1,11 @@
 // TDC Core Module
 // Measures time between two rising edges of the input signal
-// Uses coarse counter (200 MHz) + fine delay line interpolation
+// Uses coarse counter (100 MHz) + fine delay line interpolation
 //
 // State machine: IDLE -> ARMED -> MEASURING -> DONE
 
 module tdc_core (
-    input  wire        clk,           // 200 MHz clock
+    input  wire        clk,           // 100 MHz clock
     input  wire        rst_n,         // Active low reset
     input  wire        signal,        // Input signal (measures time between rising edges)
     input  wire        arm,           // Arm the TDC for measurement
@@ -22,7 +22,7 @@ module tdc_core (
 
     reg [1:0] state;
 
-    // Coarse counter (29-bit @ 200 MHz = 2.68s range)
+    // Coarse counter (29-bit @ 100 MHz = 5.37s range)
     reg [28:0] coarse_count;
 
     // Edge detection
@@ -95,7 +95,7 @@ module tdc_core (
                 DONE: begin
                     // Combine coarse and fine counts
                     // Format: [39:34] = unused, [33:5] = coarse_count, [4:0] = fine_count
-                    // Each coarse tick = 5ns (200 MHz)
+                    // Each coarse tick = 10ns (100 MHz)
                     // Each fine tick = ~150ps
                     measurement <= {6'b000000, coarse_count, fine_count};
                     meas_valid  <= 1'b1;
