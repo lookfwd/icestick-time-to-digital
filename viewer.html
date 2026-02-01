@@ -278,12 +278,10 @@
             return (coarse * coarseTick) + (fine * fineTick / 1000);
         }
 
-        // Format time with appropriate unit
+        // Format time always in nanoseconds for precision visibility
         function formatTime(ns) {
-            if (ns >= 1e9) return { value: (ns / 1e9).toFixed(3), unit: 's' };
-            if (ns >= 1e6) return { value: (ns / 1e6).toFixed(3), unit: 'ms' };
-            if (ns >= 1e3) return { value: (ns / 1e3).toFixed(3), unit: 'µs' };
-            return { value: ns.toFixed(2), unit: 'ns' };
+            // Use locale string formatting for readability with large numbers
+            return { value: ns.toLocaleString('en-US', { maximumFractionDigits: 2 }), unit: 'ns' };
         }
 
         // Update statistics display
@@ -342,16 +340,13 @@
                 bins[idx]++;
             });
 
-            // Create labels based on the range
-            const fmt = formatTime((min + max) / 2);
-            const scale = fmt.unit === 's' ? 1e9 : fmt.unit === 'ms' ? 1e6 : fmt.unit === 'µs' ? 1e3 : 1;
-
+            // Create labels in nanoseconds
             chart.data.labels = bins.map((_, i) => {
-                const val = (min + (i + 0.5) * binWidth) / scale;
-                return val.toFixed(2);
+                const val = min + (i + 0.5) * binWidth;
+                return val.toLocaleString('en-US', { maximumFractionDigits: 0 });
             });
             chart.data.datasets[0].data = bins;
-            chart.options.scales.x.title.text = `Time (${fmt.unit})`;
+            chart.options.scales.x.title.text = 'Time (ns)';
             chart.update();
         }
 

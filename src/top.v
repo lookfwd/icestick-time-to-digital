@@ -54,7 +54,7 @@ module top (
     ) tdc_inst (
         .clk_100m(clk_100m),
         .rst_n(rst_n),
-        .signal_in(signal_sync),
+        .signal_in(signal_synced),
         .uart_tx(uart_tx),
         .led(led)
     );
