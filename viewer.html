@@ -172,7 +172,7 @@
 
         <div class="settings">
             <label>Histogram bins: <input type="number" id="binCount" value="50" min="10" max="200"></label>
-            <label>Coarse tick (ns): <input type="number" id="coarseTick" value="5" step="0.1"></label>
+            <label>Coarse tick (ns): <input type="number" id="coarseTick" value="10" step="0.1"></label>
             <label>Fine tick (ps): <input type="number" id="fineTick" value="150" step="10"></label>
         </div>
 
@@ -273,8 +273,8 @@
         function rawToNs(raw) {
             const coarseTick = parseFloat(document.getElementById('coarseTick').value);
             const fineTick = parseFloat(document.getElementById('fineTick').value);
-            const coarse = raw >> 5;
-            const fine = raw & 0x1F;
+            const coarse = raw >> 6;
+            const fine = raw & 0x3F;
             return (coarse * coarseTick) + (fine * fineTick / 1000);
         }
 
