@@ -270,11 +270,14 @@
         });
 
         // Convert raw value to time in nanoseconds
+        // Note: Use division/modulo instead of bitwise ops (>>> and &) because
+        // JavaScript bitwise operators only work on 32-bit integers, but our
+        // 40-bit counter values can exceed 2^32.
         function rawToNs(raw) {
             const coarseTick = parseFloat(document.getElementById('coarseTick').value);
             const fineTick = parseFloat(document.getElementById('fineTick').value);
-            const coarse = raw >>> 6;
-            const fine = raw & 0x3F;
+            const coarse = Math.floor(raw / 64);
+            const fine = raw % 64;
             return (coarse * coarseTick) + (fine * fineTick / 1000);
         }
 
