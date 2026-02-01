@@ -7,7 +7,8 @@
 module tdc_core (
     input  wire        clk,           // 100 MHz clock
     input  wire        rst_n,         // Active low reset
-    input  wire        signal,        // Input signal (measures time between rising edges)
+    input  wire        signal,        // Input signal (synchronized) - for state machine edge detection
+    input  wire        signal_raw,    // Raw input signal (unsynchronized) - for delay line fine measurement
     input  wire        arm,           // Arm the TDC for measurement
     output reg  [39:0] measurement,   // Combined measurement result (40-bit)
     output reg         meas_valid,    // Measurement is valid
@@ -35,9 +36,11 @@ module tdc_core (
     reg  sample_delay_line;
 
     // Instantiate delay line
+    // Uses raw (unsynchronized) signal to capture precise edge timing
     delay_line delay_line_inst (
-        .signal_in(signal),
+        .signal_in(signal_raw),
         .clk(clk),
+        .rst_n(rst_n),
         .sample(sample_delay_line),
         .fine_count(fine_count),
         .valid(fine_valid)

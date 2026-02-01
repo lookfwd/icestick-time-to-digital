@@ -8,7 +8,8 @@ module tdc #(
 )(
     input  wire clk_100m,     // 100 MHz Clock
     input  wire rst_n,
-    input  wire signal_in,    // Input signal (PMOD1 pin 1) - measures time between rising edges
+    input  wire signal_in,    // Input signal (synchronized) - for state machine edge detection
+    input  wire signal_raw,   // Raw input signal (unsynchronized) - for delay line fine measurement
     output wire uart_tx,      // UART TX to FTDI
     output wire [3:0] led     // Status LEDs
 );
@@ -73,6 +74,7 @@ module tdc #(
         .clk(clk_100m),
         .rst_n(rst_n),
         .signal(signal_in),
+        .signal_raw(signal_raw),  // Raw signal for delay line fine measurement
         .arm(auto_arm),
         .measurement(measurement),
         .meas_valid(meas_valid),
