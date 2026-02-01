@@ -3,10 +3,10 @@
 // Measures time between two rising edges of the input signal
 
 module tdc #(
-    parameter CLK_FREQ = 200_000_000,  // 200 MHz clock
+    parameter CLK_FREQ = 100_000_000,  // 100 MHz clock
     parameter BAUD     = 115200
 )(
-    input  wire clk_200m,     // 200 MHz Clock
+    input  wire clk_100m,     // 100 MHz Clock
     input  wire rst_n,
     input  wire signal_in,    // Input signal (PMOD1 pin 1) - measures time between rising edges
     output wire uart_tx,      // UART TX to FTDI
@@ -22,8 +22,8 @@ module tdc #(
     wire uart_busy;
 
     // Rate limiter parameters
-    // 200 MHz clock, 20 transmissions per second = 10,000,000 clock cycles between transmissions
-    localparam CLKS_PER_TX = CLK_FREQ / 20;  // 10,000,000 cycles = 50ms
+    // 100 MHz clock, 20 transmissions per second = 5,000,000 clock cycles between transmissions
+    localparam CLKS_PER_TX = CLK_FREQ / 20;  // 5,000,000 cycles = 50ms
     reg [23:0] rate_counter;  // 24 bits can hold up to 16,777,215
     wire can_transmit;
     assign can_transmit = (rate_counter >= CLKS_PER_TX);
@@ -40,7 +40,7 @@ module tdc #(
     // When a new measurement arrives, buffer it. When UART is free, rate limit
     // allows, and we have a pending measurement, send it. This limits UART
     // transmission to 20 times per second while TDC runs continuously.
-    always @(posedge clk_200m or negedge rst_n) begin
+    always @(posedge clk_100m or negedge rst_n) begin
         if (!rst_n) begin
             meas_buffer  <= 40'd0;
             meas_pending <= 1'b0;
@@ -70,7 +70,7 @@ module tdc #(
 
     // TDC Core
     tdc_core tdc_inst (
-        .clk(clk_200m),
+        .clk(clk_100m),
         .rst_n(rst_n),
         .signal(signal_in),
         .arm(auto_arm),
@@ -85,7 +85,7 @@ module tdc #(
         .CLK_FREQ(CLK_FREQ),
         .BAUD(BAUD)
     ) uart_inst (
-        .clk(clk_200m),
+        .clk(clk_100m),
         .rst_n(rst_n),
         .data(meas_buffer),
         .data_valid(uart_start),

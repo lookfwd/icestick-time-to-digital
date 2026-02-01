@@ -2,7 +2,7 @@
 
 module top_tb;
 
-reg clk_200m;
+reg clk_100m;
 reg rst_n;
 reg signal_in;
 
@@ -10,14 +10,14 @@ wire uart_tx;
 wire [3:0] led;
 
 always
-    #2500ps clk_200m = ~clk_200m;
+    #5000ps clk_100m = ~clk_100m;
 
 
 tdc #(
-    .CLK_FREQ(200_000_000),
+    .CLK_FREQ(100_000_000),
     .BAUD(115200)
 ) tdc_inst (
-    .clk_200m(clk_200m),
+    .clk_100m(clk_100m),
     .rst_n(rst_n),
     .signal_in(signal_in),
     .uart_tx(uart_tx),
@@ -33,7 +33,7 @@ end
 initial
 begin
     $display($time, "<< Starting the Simulation >>");
-    clk_200m = 1'b0;
+    clk_100m = 1'b0;
     signal_in = 1'b0;
     
     #1ms signal_in = 1'b1;

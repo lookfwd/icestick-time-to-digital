@@ -1,6 +1,6 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
-add wave -noupdate /top_tb/tdc_inst/clk_200m
+add wave -noupdate /top_tb/tdc_inst/clk_100m
 add wave -noupdate /top_tb/tdc_inst/rst_n
 add wave -noupdate /top_tb/tdc_inst/signal_in
 add wave -noupdate /top_tb/tdc_inst/meas_pending
