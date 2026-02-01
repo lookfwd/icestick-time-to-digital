@@ -12,8 +12,7 @@ module delay_line (
     input  wire        clk,          // Clock for sampling
     input  wire        rst_n,        // Active low reset
     input  wire        sample,       // Sample the delay line state (from synchronized edge detection)
-    output wire [5:0]  fine_count,   // Binary-encoded position (0-63)
-    output wire        valid         // Output is valid
+    output wire [5:0]  fine_count    // Binary-encoded position (0-63)
 );
 
     // Delay line taps (directly from carry chain)
@@ -70,7 +69,6 @@ module delay_line (
     // This corresponds to when the raw edge actually arrived
     // (compensating for synchronizer + sample register delay)
     assign fine_count = fine_count_history[3];
-    assign valid = sample;
 
     // Count ones in thermometer code
     // The thermometer code shows how far the signal has propagated

@@ -17,10 +17,6 @@ module top (
         .locked(pll_locked)
     );
 
-    // Input synchronization
-    reg [2:0] signal_sync;
-    wire signal_synced = signal_sync[2];
-
     // Reset generation (hold reset until PLL locks)
     reg [7:0] reset_counter = 0;
     reg rst_n_reg = 0;
@@ -39,23 +35,13 @@ module top (
 
     assign rst_n = rst_n_reg;
 
-    // Synchronize external input to 100 MHz domain
-    always @(posedge clk_100m or negedge rst_n) begin
-        if (!rst_n) begin
-            signal_sync <= 3'b000;
-        end else begin
-            signal_sync <= {signal_sync[1:0], signal_in};
-        end
-    end
-
     tdc #(
         .CLK_FREQ(100_000_000),
         .BAUD(115200)
     ) tdc_inst (
         .clk_100m(clk_100m),
         .rst_n(rst_n),
-        .signal_in(signal_synced),
-        .signal_raw(signal_in),      // Raw signal for delay line fine measurement
+        .signal_in(signal_in),      // Raw signal for delay line fine measurement
         .uart_tx(uart_tx),
         .led(led)
     );

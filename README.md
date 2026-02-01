@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Time-to-Digital Converter (TDC) for the iCEstick (ICE40HX1K-STICK-EVN). Measures time intervals between START and STOP pulses with ~1ns resolution over a 2.68 second range, using a 100 MHz coarse counter and 64-tap carry chain delay line.
 
+![](img/icestick-tdc.png)
+
 ## Build Commands
 
 ```bash

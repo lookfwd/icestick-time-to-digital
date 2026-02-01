@@ -1,19 +1,10 @@
 module delay_line (
-    input  wire        signal_in,    // Signal to measure (propagates through chain)
+    input  wire        signal_in,    // RAW signal to measure (propagates through chain)
     input  wire        clk,          // Clock for sampling
-    input  wire        sample,       // Sample the delay line state
-    output reg  [5:0]  fine_count,   // Binary-encoded position (0-63)
-    output reg         valid         // Output is valid
+    input  wire        rst_n,        // Active low reset
+    input  wire        sample,       // Sample the delay line state (from synchronized edge detection)
+    output wire [5:0]  fine_count   // Binary-encoded position (0-63)
 );
-
-    always @(posedge clk) begin
-        if (sample) begin
-            valid <= 1'b1;
-        end else begin
-            valid <= 1'b0;
-        end
-    end
-
     assign fine_count = 6'b0;
 
 endmodule
