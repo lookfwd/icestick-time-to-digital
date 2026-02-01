@@ -59,3 +59,16 @@ Example: `000000D4A0\n` = 0xD4A0 = 54432 ticks ≈ 272 µs
 - Rolling display of recent measurements
 - Live statistics (count, mean, std dev, min, max)
 - Histogram of time distribution (Chart.js)
+
+
+## How to build on Windows
+
+Install OSS CAD Suite, and make.
+
+Source `oss-cad-suite\environment.bat` to setup the environment.
+
+Go to the directory and `make all`.
+
+Use the "Diamond Programmer" as described in "Programming Demo Designs with
+Lattice Programmer" section of the iCEstick Evaluation Kit User's Guide.
+The `.bin` file will be inside the `build` directory.
