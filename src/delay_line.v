@@ -2,20 +2,22 @@
 // 64-tap delay line for sub-clock-cycle interpolation
 // Each tap adds ~150ps propagation delay (~9.6ns total)
 // Output is thermometer-coded, then converted to binary
+//
+// IMPORTANT: This module must receive the RAW (unsynchronized) signal
+// to accurately measure fine timing. The synchronizer delay is compensated
+// by using a 4-cycle history buffer.
 
 module delay_line (
-    input  wire        signal_in,    // Signal to measure (propagates through chain)
+    input  wire        signal_in,    // RAW signal to measure (propagates through chain)
     input  wire        clk,          // Clock for sampling
-    input  wire        sample,       // Sample the delay line state
-    output reg  [5:0]  fine_count,   // Binary-encoded position (0-63)
-    output reg         valid         // Output is valid
+    input  wire        rst_n,        // Active low reset
+    input  wire        sample,       // Sample the delay line state (from synchronized edge detection)
+    output wire [5:0]  fine_count,   // Binary-encoded position (0-63)
+    output wire        valid         // Output is valid
 );
 
     // Delay line taps (directly from carry chain)
     wire [63:0] taps;
-
-    // Sampled thermometer code
-    reg [63:0] thermometer;
 
     // Carry chain instantiation
     // Each SB_CARRY adds propagation delay
@@ -39,29 +41,40 @@ module delay_line (
         end
     endgenerate
 
-    // Sample the thermometer code on sample pulse
-    always @(posedge clk) begin
-        if (sample) begin
-            thermometer <= taps;
-            valid <= 1'b1;
+    // History buffer for fine_count values
+    // The synchronized edge detection is 4 cycles behind the raw edge:
+    //   - 3 cycles in synchronizer (signal_sync[2:0])
+    //   - 1 cycle for sample_delay_line register
+    // We need to output the fine_count from when the raw edge arrived,
+    // so we keep a 4-cycle history and output history[3] when sampled.
+    reg [5:0] fine_count_history [0:3];
+
+    // Sample the delay line on every clock edge and maintain history
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            fine_count_history[0] <= 6'd0;
+            fine_count_history[1] <= 6'd0;
+            fine_count_history[2] <= 6'd0;
+            fine_count_history[3] <= 6'd0;
         end else begin
-            valid <= 1'b0;
+            // Shift history (oldest value gets overwritten)
+            fine_count_history[3] <= fine_count_history[2];
+            fine_count_history[2] <= fine_count_history[1];
+            fine_count_history[1] <= fine_count_history[0];
+            // Compute new fine_count from current taps
+            fine_count_history[0] <= count_ones(taps);
         end
     end
 
-    // Thermometer to binary encoder
-    // Counts the number of '1's in the thermometer code
-    // This represents how far the signal propagated
-    always @(posedge clk) begin
-        if (sample) begin
-            // Priority encoder - find the transition point
-            // The thermometer code should be like: 11111100000
-            // We count how many 1s there are
-            fine_count <= count_ones(taps);
-        end
-    end
+    // Output the historical fine_count from 4 cycles ago
+    // This corresponds to when the raw edge actually arrived
+    // (compensating for synchronizer + sample register delay)
+    assign fine_count = fine_count_history[3];
+    assign valid = sample;
 
-    // Count ones in thermometer code (simple implementation)
+    // Count ones in thermometer code
+    // The thermometer code shows how far the signal has propagated
+    // More 1s = signal arrived earlier relative to the clock edge
     function [5:0] count_ones;
         input [63:0] therm;
         integer j;

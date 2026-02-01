@@ -55,6 +55,7 @@ module top (
         .clk_100m(clk_100m),
         .rst_n(rst_n),
         .signal_in(signal_synced),
+        .signal_raw(signal_in),      // Raw signal for delay line fine measurement
         .uart_tx(uart_tx),
         .led(led)
     );
