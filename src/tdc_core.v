@@ -30,7 +30,7 @@ module tdc_core (
     wire signal = signal_sync[2];
 
     // Synchronize external input to 100 MHz domain
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             signal_sync <= 3'b000;
         end else begin
@@ -57,7 +57,7 @@ module tdc_core (
     );
 
     // Edge detection registers
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             signal_d <= 1'b0;
         end else begin
@@ -66,7 +66,7 @@ module tdc_core (
     end
 
     // State machine
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             state             <= IDLE;
             coarse_count      <= 0;

@@ -66,7 +66,7 @@ module uart_tx #(
         end
     endfunction
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             state      <= IDLE;
             tx         <= 1'b1;  // Idle high

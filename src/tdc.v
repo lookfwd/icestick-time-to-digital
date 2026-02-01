@@ -40,7 +40,7 @@ module tdc #(
     // When a new measurement arrives, buffer it. When UART is free, rate limit
     // allows, and we have a pending measurement, send it. This limits UART
     // transmission to 20 times per second while TDC runs continuously.
-    always @(posedge clk_100m or negedge rst_n) begin
+    always @(posedge clk_100m) begin
         if (!rst_n) begin
             meas_buffer  <= 40'd0;
             meas_pending <= 1'b0;

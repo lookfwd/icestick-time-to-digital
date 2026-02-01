@@ -49,7 +49,7 @@ module delay_line (
     reg [5:0] fine_count_history [0:3];
 
     // Sample the delay line on every clock edge and maintain history
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             fine_count_history[0] <= 6'd0;
             fine_count_history[1] <= 6'd0;

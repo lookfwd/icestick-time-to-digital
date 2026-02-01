@@ -21,7 +21,7 @@ module top (
     reg [7:0] reset_counter = 0;
     reg rst_n_reg = 0;
 
-    always @(posedge clk_100m or negedge pll_locked) begin
+    always @(posedge clk_100m) begin
         if (!pll_locked) begin
             reset_counter <= 0;
             rst_n_reg <= 0;
