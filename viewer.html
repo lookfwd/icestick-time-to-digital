@@ -298,7 +298,7 @@
 
             const times = measurements.map(m => m.ns);
             const latest = times[times.length - 1];
-            const mean = times.reduce((a, b) => a + b, 0) / times.length;
+            const mean = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
             const min = Math.min(...times);
             const max = Math.max(...times);
             const variance = times.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / times.length;
