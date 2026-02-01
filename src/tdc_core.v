@@ -22,15 +22,15 @@ module tdc_core (
 
     reg [1:0] state;
 
-    // Coarse counter (29-bit @ 100 MHz = 5.37s range)
-    reg [28:0] coarse_count;
+    // Coarse counter (28-bit @ 100 MHz = 2.68s range)
+    reg [27:0] coarse_count;
 
     // Edge detection
     reg signal_d;
     wire signal_rising = signal & ~signal_d;
 
     // Delay line interface
-    wire [4:0] fine_count;
+    wire [5:0] fine_count;
     wire fine_valid;
     reg  sample_delay_line;
 
@@ -81,7 +81,7 @@ module tdc_core (
 
                 MEASURING: begin
                     // Increment coarse counter
-                    if (coarse_count < 29'h1FFFFFFF) begin
+                    if (coarse_count < 28'hFFFFFFF) begin
                         coarse_count <= coarse_count + 1;
                     end
 
@@ -94,9 +94,9 @@ module tdc_core (
 
                 DONE: begin
                     // Combine coarse and fine counts
-                    // Format: [39:34] = unused, [33:5] = coarse_count, [4:0] = fine_count
+                    // Format: [39:34] = unused, [33:6] = coarse_count, [5:0] = fine_count
                     // Each coarse tick = 10ns (100 MHz)
-                    // Each fine tick = ~150ps
+                    // Each fine tick = ~150ps (64 taps cover ~9.6ns)
                     measurement <= {6'b000000, coarse_count, fine_count};
                     meas_valid  <= 1'b1;
 
