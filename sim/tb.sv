@@ -1,4 +1,4 @@
-`timescale 1 ns / 100 ps
+`timescale 1 ns / 10 ps
 
 module top_tb;
 
@@ -36,11 +36,13 @@ begin
     clk_100m = 1'b0;
     signal_in = 1'b0;
     
-    #1ms signal_in = 1'b1;
+    #1ms;
+
+    #2.5ns signal_in = 1'b1;
 
     #100 signal_in = 1'b0;
     
-    #100 signal_in = 1'b1; // 200ns between edges
+    #105 signal_in = 1'b1; // 205ns between edges
 
     #100 signal_in = 1'b0;
     

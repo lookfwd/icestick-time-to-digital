@@ -173,7 +173,7 @@
         <div class="settings">
             <label>Histogram bins: <input type="number" id="binCount" value="50" min="10" max="200"></label>
             <label>Coarse tick (ns): <input type="number" id="coarseTick" value="10" step="0.1"></label>
-            <label>Fine tick (ps): <input type="number" id="fineTick" value="150" step="10"></label>
+            <label>Fine tick (ps): <input type="number" id="fineTick" value="900" step="10"></label>
         </div>
 
         <div class="stats">
@@ -300,12 +300,12 @@
             }
 
             const times = measurements.map(m => m.ns);
-            const latest = times[times.length - 1];
+            const latest = Math.round(times[times.length - 1]);
             const mean = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-            const min = Math.min(...times);
-            const max = Math.max(...times);
+            const min = Math.round(Math.min(...times));
+            const max = Math.round(Math.max(...times));
             const variance = times.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / times.length;
-            const std = Math.sqrt(variance);
+            const std = Math.sqrt(variance).toFixed(1);
 
             const stats = [
                 { id: 'latest', val: latest },

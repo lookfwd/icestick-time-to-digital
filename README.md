@@ -8,6 +8,15 @@ Time-to-Digital Converter (TDC) for the iCEstick (ICE40HX1K-STICK-EVN). Measures
 
 ![](img/icestick-tdc.png)
 
+This is a toy-application to explore how good Claude Code is with Verilog. The results aren't accurate at least because:
+
+1. The carry chain value `fine_count` should be carefully added to `coarse_count`.
+
+![](img/carry-chain.png)
+
+2. The carry chain value `fine_count` should additionally be captured on the first pulse, and a subtraction between the second and the first `fine_count` should happen. The result (signed number) should be sent to the UI.
+3. Everything should be tested and carefully calibrated. The carry-chain latency has to be characterized for each unit (including routing delays) as well as get a sense of how those delays change with e.g. temperature.
+
 ## Build Commands
 
 ```bash

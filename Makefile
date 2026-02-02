@@ -3,7 +3,7 @@
 
 # Project settings
 TOP = top
-SOURCES = src/top.v src/tdc.v src/pll.v src/tdc_core.v src/delay_line.v src/uart_tx.v
+SOURCES = src/top.v src/tdc.v src/pll.v src/tdc_core.v src/delay_line.v src/uart_tx.v src/carry_chain.v
 PCF = icestick.pcf
 
 # iCE40 settings for iCEstick (HX1K in TQ144 package)

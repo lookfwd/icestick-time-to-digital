@@ -25,9 +25,36 @@ module tdc_core (
     // Coarse counter (28-bit @ 100 MHz = 2.68s range)
     reg [27:0] coarse_count;
 
+    wire[9:0]  carry_out_line;
+    // Instantiate delay line
+    // Uses raw (unsynchronized) signal to capture precise edge timing
+    delay_line delay_line_inst (
+        .signal_in(signal_in),
+        .carry_out(carry_out_line)
+    );
+
     // Input synchronization
     reg [2:0] signal_sync;
-    wire signal = signal_sync[2];
+
+    reg [9:0] carry_out_r_0;
+    reg [5:0] carry_out_r_1;
+    reg [5:0] carry_out_r_2;
+    reg [5:0] carry_out_r_3;
+
+    // Count ones in thermometer code
+    // The thermometer code shows how far the signal has propagated
+    // More 1s = signal arrived earlier relative to the clock edge
+    function [5:0] count_ones;
+        input [9:0] therm;
+        integer j;
+        begin
+            count_ones = 0;
+            for (j = 0; j < 10; j = j + 1) begin
+                count_ones = count_ones + therm[j];
+            end
+        end
+    endfunction
+    
 
     // Synchronize external input to 100 MHz domain
     always @(posedge clk or negedge rst_n) begin
@@ -35,26 +62,19 @@ module tdc_core (
             signal_sync <= 3'b000;
         end else begin
             signal_sync <= {signal_sync[1:0], signal_in};
+            carry_out_r_0 <= carry_out_line;
+            carry_out_r_1 <= count_ones(carry_out_r_0);
+            carry_out_r_2 <= carry_out_r_1;
+            carry_out_r_3 <= carry_out_r_2;
         end
     end
+
+   wire signal = signal_sync[2];
+   wire [5:0] fine_count = carry_out_r_3;
 
     // Edge detection
     reg signal_d;
     wire signal_rising = signal & ~signal_d;
-
-    // Delay line interface
-    wire [5:0] fine_count;
-    reg  sample_delay_line;
-
-    // Instantiate delay line
-    // Uses raw (unsynchronized) signal to capture precise edge timing
-    delay_line delay_line_inst (
-        .signal_in(signal_in),
-        .clk(clk),
-        .rst_n(rst_n),
-        .sample(sample_delay_line),
-        .fine_count(fine_count)
-    );
 
     // Edge detection registers
     always @(posedge clk or negedge rst_n) begin
@@ -72,9 +92,7 @@ module tdc_core (
             coarse_count      <= 0;
             measurement       <= 0;
             meas_valid        <= 1'b0;
-            sample_delay_line <= 1'b0;
         end else begin
-            sample_delay_line <= 1'b0;  // Default: no sample
             meas_valid        <= 1'b0;  // Default: not valid
 
             case (state)
@@ -100,7 +118,6 @@ module tdc_core (
 
                     // Check for second rising edge
                     if (signal_rising) begin
-                        sample_delay_line <= 1'b1;
                         state <= DONE;
                     end
                 end
